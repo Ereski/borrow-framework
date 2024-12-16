@@ -1,0 +1,20 @@
+[package]
+name = "borrow-framework"
+authors = ["Carol Schulze <carol@ereski.org>"]
+license = "MIT"
+repository = "https://github.com/Ereski/borrow-framework"
+description = "More flexible borrowing"
+keywords = ["borrow", "hkt"]
+categories = [
+    "data-structures",
+    "memory-management",
+    "no-std",
+    "no-std::no-alloc",
+    "rust-patterns",
+]
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["std"]
+std = []
