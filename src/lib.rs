@@ -123,11 +123,37 @@ where
         'a: 'b;
 }
 
+impl<'a> Borrow<'a, BorrowString> for &str {
+    fn borrow<'b>(&'a self) -> Borrowed<'b, BorrowString>
+    where
+        'a: 'b,
+    {
+        self
+    }
+}
+
+#[cfg(feature = "std")]
+impl<'a> Borrow<'a, BorrowString> for String {
+    fn borrow<'b>(&'a self) -> Borrowed<'b, BorrowString>
+    where
+        'a: 'b,
+    {
+        self
+    }
+}
+
 /// Trait for resolving a concrete type from a given lifetime `'a`, where `'a`
 /// is the lifetime of the value being borrowed.
 pub trait BorrowHkt<'a> {
     /// The borrowed type.
     type T;
+}
+
+/// Marker type implementing [BorrowHkt] for [str].
+pub struct BorrowString;
+
+impl<'a> BorrowHkt<'a> for BorrowString {
+    type T = &'a str;
 }
 
 /// Type alias to extract the concrete borrowed type from a [BorrowHkt].
@@ -172,6 +198,28 @@ pub trait ToOwned: Sized {
     /// Create an owned version of this type, consuming `self`.
     fn into_owned(self) -> Self::Owned {
         self.to_owned()
+    }
+}
+
+#[cfg(feature = "std")]
+impl ToOwned for &str {
+    type Owned = String;
+
+    fn to_owned(&self) -> Self::Owned {
+        std::borrow::ToOwned::to_owned(*self)
+    }
+}
+
+#[cfg(feature = "std")]
+impl ToOwned for String {
+    type Owned = String;
+
+    fn to_owned(&self) -> Self::Owned {
+        self.clone()
+    }
+
+    fn into_owned(self) -> Self::Owned {
+        self
     }
 }
 
@@ -532,3 +580,47 @@ pub type CowableBorrowed<'a, T> = Borrowed<'a, <T as Cowable>::BorrowHkt>;
 
 /// Type alias to extract the concrete owned type from a [Cowable].
 pub type CowableOwned<T> = <T as Cowable>::Owned;
+
+// Implement `Borrow`, `BorrowHkt` and `ToOwned` for simple `Copy` types
+macro_rules! simple_type {
+    ($ty:ty) => {
+        impl<'a> Borrow<'a, $ty> for $ty {
+            fn borrow<'b>(&'a self) -> Borrowed<'b, $ty>
+            where
+                'a: 'b,
+            {
+                *self
+            }
+        }
+
+        impl BorrowHkt<'_> for $ty {
+            type T = $ty;
+        }
+
+        impl ToOwned for $ty {
+            type Owned = $ty;
+
+            fn to_owned(&self) -> Self::Owned {
+                *self
+            }
+        }
+    };
+}
+
+simple_type!(());
+simple_type!(bool);
+simple_type!(char);
+simple_type!(i8);
+simple_type!(i16);
+simple_type!(i32);
+simple_type!(i64);
+simple_type!(i128);
+simple_type!(isize);
+simple_type!(u8);
+simple_type!(u16);
+simple_type!(u32);
+simple_type!(u64);
+simple_type!(u128);
+simple_type!(usize);
+simple_type!(f32);
+simple_type!(f64);
