@@ -175,6 +175,33 @@ pub trait ToOwned: Sized {
     }
 }
 
+#[cfg(feature = "std")]
+impl<T> ToOwned for std::borrow::Cow<'_, T>
+where
+    T: std::borrow::ToOwned + 'static,
+    T::Owned: Clone,
+{
+    type Owned = std::borrow::Cow<'static, T>;
+
+    fn to_owned(&self) -> std::borrow::Cow<'static, T> {
+        let owned = match self {
+            Self::Borrowed(x) => T::to_owned(x),
+            Self::Owned(x) => x.clone(),
+        };
+
+        std::borrow::Cow::Owned(owned)
+    }
+
+    fn into_owned(self) -> std::borrow::Cow<'static, T> {
+        let owned = match self {
+            Self::Borrowed(x) => T::to_owned(x),
+            Self::Owned(x) => x,
+        };
+
+        std::borrow::Cow::Owned(owned)
+    }
+}
+
 /// A clone-on-write container that contains either the owned or borrowed
 /// version of some data.
 ///
